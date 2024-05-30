@@ -10,8 +10,8 @@ import re
 src_bucket = 'imdb-load-kc'
 
 
-# src_key = 'title.episode.tsv'
-src_key = 'name.basics.tsv'
+src_key = 'title.episode.tsv'
+# src_key = 'name.basics.tsv'
 
 write_bucket = 'imdb-load-split-kc'
 
@@ -202,7 +202,7 @@ def file_splitter(bucket_name, key_name, bucket_name_write, default_file_size):
     
     print(f"Chunksize of file {key_name} is: {chunksize}")
     
-    object_body_only = get_obj_body(src_bucket, src_key)
+    object_body_only = get_obj_body(bucket_name, key_name)
     
     # iterates over the object body based on the chunk size
     for index, chunk in enumerate(pd.read_csv(object_body_only, chunksize = chunksize, delimiter = '\t')):
@@ -226,65 +226,12 @@ def file_splitter(bucket_name, key_name, bucket_name_write, default_file_size):
         
         # print(response)
         
-        if index == 3:
+        if index == 2:
             break
         
     print('/////////')
     
     return
 
-# for key in keys:
-    
 
-# file_splitter(src_bucket, src_key, write_bucket, max_file_size)
-
-# gets dictionary containing info about the key
-object_key = get_obj(src_bucket, src_key)
-
-# gets the streaming location of the body and its size
-obj_body, obj_size = get_obj_size_loc(object_key)
-
-# prints the streaming location of the body and its size 
-print(f"object body {obj_body}, object size {obj_size}")
-
-# get the line count of file
-line_count = line_counter(obj_body)
-
-print(f"Line count of file {src_key} is: {line_count}")
-
-# gets the number of lines per chunk
-chunksize_file = chunkisze_set(line_count, obj_size, max_file_size)
-
-print(f"Chunksize of file {src_key} is: {chunksize_file}")
-
-print(type(chunksize_file))
-
-object_body_only = get_obj_body(src_bucket, src_key)
-
-print(obj_body)
-
-
-
-for index, chunk in enumerate(pd.read_csv(object_body_only, chunksize = chunksize_file, delimiter = '\t')):
-    
-    # creates a boto3 s3 client resource that will be used to put objects
-    write_client = boto3.client('s3')
-    
-    # gets today's year, month, day
-    year, month, day = get_date()
-    
-    # string containing the key name of the chunk
-    print(f"key name raw {src_key}")
-    key_name_write = key_name_generator(src_key, index, year, month, day)
-    
-    print(f"key name {key_name_write}")
-    
-    print("/////////////")
-    
-    # writes the chunk to the specified s3 bucket
-    response = write_client.put_object(Body = dataframe_to_bytes(chunk), Bucket = write_bucket, Key = key_name_write)
-    
-    # print(response)
-    
-    if index == 2:
-        break
+file_splitter(src_bucket, src_key, write_bucket, max_file_size)
