@@ -1,0 +1,3 @@
+# Exlude .c9 files
+
+.c9/
