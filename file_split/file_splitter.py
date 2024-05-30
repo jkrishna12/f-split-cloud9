@@ -15,7 +15,7 @@ src_key = 'name.basics.tsv'
 
 write_bucket = 'imdb-load-split-kc'
 
-max_file_size = 100000000
+max_file_size = 52428800
 
 keys = ['name.basics.tsv', 'title.episode.tsv','title.crew.tsv','title.ratings.tsv']
 
@@ -286,5 +286,5 @@ for index, chunk in enumerate(pd.read_csv(object_body_only, chunksize = chunksiz
     
     # print(response)
     
-    if index == 3:
+    if index == 2:
         break
