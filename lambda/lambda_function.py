@@ -41,11 +41,7 @@ def lambda_handler(event, context):
         
         df = pd.read_csv(obj_body, delimiter = '\t')
         
-        key_name_write = key_name_generator(key_name, year, month, day, index = None)
-        print(f"key name {key_name_write}")
-        
-        # writes the chunk to the specified s3 bucket
-        response = write_client.put_object(Body = dataframe_to_bytes(df), Bucket = write_bucket, Key = key_name_write)
+        write_df(df, write_bucket, key_name, year, month, day, index = None)
         
     else:
         line_count = line_counter(obj_body)
@@ -61,11 +57,7 @@ def lambda_handler(event, context):
         # iterates over the object body based on the chunk size
         for index, chunk in enumerate(pd.read_csv(object_body_only, chunksize = chunksize, delimiter = '\t')):
             
-            key_name_write = key_name_generator(key_name, year, month, day, index = index)
-            print(f"key name {key_name_write}")
-            
-            # writes the chunk to the specified s3 bucket
-            response = write_client.put_object(Body = dataframe_to_bytes(chunk), Bucket = write_bucket, Key = key_name_write)
+            write_df(chunk, write_bucket, key_name, year, month, day, index = index)
             
             if index == 2:
                 break
@@ -223,3 +215,18 @@ def chunkisze_set(file_lines, file_bytes, default_file_bytes):
         chunksize = file_lines
 
     return chunksize
+    
+def write_df(chunk, write_bucket, key_name, year, month, day, index):
+    """
+    """
+    
+    # creates a boto3 s3 client resource that will be used to put objects
+    write_client = boto3.client('s3')
+
+    key_name_write = key_name_generator(key_name, year, month, day, index = index)
+    print(f"key name {key_name_write}")
+    
+    # writes the chunk to the specified s3 bucket
+    response = write_client.put_object(Body = dataframe_to_bytes(chunk), Bucket = write_bucket, Key = key_name_write)
+    
+    return
