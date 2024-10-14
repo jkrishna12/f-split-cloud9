@@ -14,6 +14,8 @@ def lambda_handler(event, context):
     threshold = 1.5 * max_file_size
     
     write_bucket = 'imdb-load-split-kc'
+    
+    delimiter = '\t'
 
     bucket_name = event['Records'][0]['s3']['bucket']['name']
     
@@ -37,35 +39,44 @@ def lambda_handler(event, context):
     # gets today's year, month, day
     year, month, day = get_date()
     
-    if obj_size <= threshold:
-        
-        df = pd.read_csv(obj_body, delimiter = '\t')
-        
-        write_df(df, write_bucket, key_name, year, month, day, index = None)
-        
-    else:
-        line_count = line_counter(obj_body)
-        
-        print(f'Line count of file is {line_count}')
-        
-        chunksize = chunkisze_set(line_count, obj_size, max_file_size)
-        
-        print(f'Chunksize = {chunksize}')
-        
-        object_body_only = get_obj_body(bucket_name, key_name)
-        
-        # iterates over the object body based on the chunk size
-        for index, chunk in enumerate(pd.read_csv(object_body_only, chunksize = chunksize, delimiter = '\t')):
+    try:
+        if obj_size <= threshold:
             
-            write_df(chunk, write_bucket, key_name, year, month, day, index = index)
+            df = pd.read_csv(obj_body, delimiter = delimiter)
             
-            if index == 2:
-                break
+            write_df(df, write_bucket, key_name, year, month, day, index = None)
+            
+        else:
+            line_count = line_counter(obj_body)
+            
+            print(f'Line count of file is {line_count}')
+            
+            chunksize = chunkisze_set(line_count, obj_size, max_file_size)
+            
+            print(f'Chunksize = {chunksize}')
+            
+            object_body_only = get_obj_body(bucket_name, key_name)
+            
+            # iterates over the object body based on the chunk size
+            for index, chunk in enumerate(pd.read_csv(object_body_only, chunksize = chunksize, delimiter = delimiter)):
+                
+                write_df(chunk, write_bucket, key_name, year, month, day, index = index)
+                
+                if index == 2:
+                    break
+            
+        return {
+            'statusCode': 200,
+            'body': json.dumps('Successfully split file')
+        }
         
-    return {
-        'statusCode': 200,
-        'body': json.dumps('Hello from Lambda!')
-    }
+    except:
+        print(f'Unable to split files, investigate further')
+        
+        return {
+            'statusCode': 400,
+            'body': json.dumps('Failed to split files')
+        }        
     
 def get_obj(bucket_name, key_name):
     """
@@ -87,7 +98,14 @@ def get_obj(bucket_name, key_name):
     
 def get_obj_size_loc(object_dict):
     """
+    Returns object body and its size
     
+    Parameters:
+        object_dict: dict, contains information about object
+    
+    Returns:
+        obj_body: streaming location of object within S3
+        obj_size: int, size of object in bytes
     """
     
     obj_body = object_dict['Body']
